@@ -35,5 +35,14 @@ void Switch::update(midi::MidiInterface<midi::SerialMIDI<HardwareSerial>> midiIn
 };
 
 void Switch::forceUpdate(midi::MidiInterface<midi::SerialMIDI<HardwareSerial>> midiInstance) {
-  
+  bool pressed = !digitalRead(pin);
+
+  if (pressed) {
+    midiInstance.sendControlChange(ccNumber, outputMax, channel);
+  }
+  else {
+    midiInstance.sendControlChange(ccNumber, outputMin, channel);
+  }
+
+  prevPressed = pressed;
 }

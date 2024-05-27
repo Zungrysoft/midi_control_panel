@@ -4,8 +4,6 @@
 #include <Arduino.h>
 #include <MIDI.h>
 
-const int DEBOUNCE_TIME_MS = 5;
-
 class Switch {
   private:
     byte pin;

@@ -1,10 +1,11 @@
-// =================
-// Imports and Setup
-// =================
+// =======================
+// Imports and Definitions
+// =======================
 #include <MIDI.h>
 #include "switch.h"
-#include "pot.h"
 #include "muxer.h"
+#include "pot.h"
+#include "button.h"
 
 #define ARRAY_SIZE(x) (sizeof((x)) / sizeof((x)[0]))
 
@@ -40,8 +41,8 @@ const Pot POTS[] = {
 };
 
 // Configure buttons
-// const SendControlButton = Button(40);
-// const PanicButton = Button(41);
+const Button ControlSyncButton = Button(40);
+const Button PanicButton = Button(41);
 
 // Special pins
 const byte BLOCK_CONTROL_PASSTHROUGH_PIN = 53;
@@ -69,18 +70,18 @@ void setup() {
   MIDI.setHandleAfterTouchPoly(handleAfterTouchPoly);
   MIDI.setHandleProgramChange(handleProgramChange);
 
-  // Set up input pins for switches
+  // Init switches
   for (int i = 0; i < ARRAY_SIZE(SWITCHES); i ++) {
     SWITCHES[i].begin();
   }
-
-  // Set up special input pins
-  pinMode(BLOCK_CONTROL_PASSTHROUGH_PIN, INPUT_PULLUP);
 
   // Init muxers
   for (int i = 0; i < ARRAY_SIZE(MUXERS); i ++) {
     MUXERS[i].begin();
   }
+
+  // Set up special input pins
+  pinMode(BLOCK_CONTROL_PASSTHROUGH_PIN, INPUT_PULLUP);
 }
 
 void loop() {
@@ -97,45 +98,25 @@ void loop() {
     POTS[i].update(MIDI);
   }
 
+  // Control Sync button
+  if (ControlSyncButton.wasPressed()) {
+    // Switches
+    for (int i = 0; i < ARRAY_SIZE(SWITCHES); i ++) {
+      SWITCHES[i].forceUpdate(MIDI);
+    }
+
+    // Pots
+    for (int i = 0; i < ARRAY_SIZE(POTS); i ++) {
+      POTS[i].forceUpdate(MIDI);
+    }
+  }
+
   // Panic button
-
-  // Control Update button
-
-  // // Update all control states
-    // else if (SWITCHES[i].mode == SWITCH_UPDATE) {
-    //   // Switches
-    //   for (int j = 0; j < ARRAY_SIZE(SWITCHES); j ++) {
-    //     if (SWITCHES[j].mode == SWITCH_CONTROL) {
-    //       int updatePressed = !digitalRead(SWITCHES[j].pin);
-    //       MIDI.sendControlChange(SWITCHES[j].ccNumber, updatePressed ? SWITCHES[j].outputMax : SWITCHES[j].outputMin, SWITCHES[j].channel);
-    //       switchPrevStates[i] = updatePressed;
-    //     }
-    //   }
-
-    //   // Pots
-    //   for (int j = 0; j < ARRAY_SIZE(POTS); j ++) {
-    //     POTS[j].forceUpdate(MIDI);
-    //   }
-    // }
-    // // Panic button
-    // else if (SWITCHES[i].mode == SWITCH_PANIC) {
-    //   for (int j = 1; j <= 16; j ++) {
-    //     MIDI.sendControlChange(123, 0, j);
-    //   }
-    // }
-  // }
-
-  // for (int channel = 0; channel < 8; channel++) {
-  //   if (channel == MUX0) {
-  //     int value = POTS[0].muxer.read(channel);
-  //     Serial.print("Mux ");
-  //     Serial.print(0);
-  //     Serial.print(", Channel ");
-  //     Serial.print(channel);
-  //     Serial.print(": ");
-  //     Serial.println(value);
-  //   }
-  // }
+  if (PanicButton.wasPressed()) {
+    for (int i = 1; i <= 16; i ++) {
+      MIDI.sendControlChange(123, 0, i);
+    }
+  }
 }
 
 void handleNoteOn(byte channel, byte note, byte velocity) {
