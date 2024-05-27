@@ -11,7 +11,7 @@ Pot::Pot(
 void Pot::update() {
   const int readValue = muxer.read(muxerChannel);
 
-   // Read value must be at least 5 away from previous (prevents indecisive shifting between values)
+   // Read value must be at least 5 away from previous to update (prevents indecisive shifting between values)
   if (abs(readValue - curValue) >= DEFUZZ_BUFFER) {
     curValue = readValue;
     valueChanged = true;

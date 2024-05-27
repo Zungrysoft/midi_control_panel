@@ -3,6 +3,8 @@
 
 #include <Arduino.h>
 
+const int SLEEP_TIME_MS = 10;
+
 class Muxer {
   private:
     byte analogPin;

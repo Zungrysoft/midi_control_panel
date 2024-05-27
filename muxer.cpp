@@ -19,10 +19,10 @@ void Muxer::begin() {
 };
 
 int Muxer::read(byte channel) {
-  delay(10);
+  delay(SLEEP_TIME_MS);
   digitalWrite(pin0, channel & 1<<0);
   digitalWrite(pin1, channel & 1<<1);
   digitalWrite(pin2, channel & 1<<2);
-  delay(10);
+  delay(SLEEP_TIME_MS);
   return analogRead(analogPin);
 };
