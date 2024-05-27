@@ -2,10 +2,10 @@
 // Imports and Definitions
 // =======================
 #include <MIDI.h>
-#include "switch.h"
+#include "control_switch.h"
 #include "muxer.h"
-#include "pot.h"
-#include "button.h"
+#include "control_pot.h"
+#include "switch.h"
 
 #define ARRAY_SIZE(x) (sizeof((x)) / sizeof((x)[0]))
 
@@ -25,9 +25,9 @@ MIDI_CREATE_DEFAULT_INSTANCE();
 // =============
 
 // Configure switches
-const Switch SWITCHES[] = {
-  Switch(38, 66, 1, 0, 127),
-  Switch(39, 70, 1, 0, 127),
+const ControlSwitch SWITCHES[] = {
+  ControlSwitch(38, 66, 1, 0, 127),
+  ControlSwitch(39, 70, 1, 0, 127),
 };
 
 // Configure muxers
@@ -36,16 +36,14 @@ const Muxer MUXERS[] = {
 };
 
 // Configure pots
-const Pot POTS[] = {
-  Pot(MUXERS[0], MUX0, 66, 1, 0, 127, 0, 1024),
+const ControlPot POTS[] = {
+  ControlPot(MUXERS[0], MUX0, 66, 1, 0, 127, 0, 1024),
 };
 
-// Configure buttons
-const Button ControlSyncButton = Button(40);
-const Button PanicButton = Button(41);
-
-// Special pins
-const byte BLOCK_CONTROL_PASSTHROUGH_PIN = 53;
+// Configure special switches
+const Switch ControlSyncButton = Switch(40);
+const Switch PanicButton = Switch(41);
+const Switch ControlPassthroughSwitch = Switch(53);
 
 // =========
 // Main Code
@@ -80,8 +78,10 @@ void setup() {
     MUXERS[i].begin();
   }
 
-  // Set up special input pins
-  pinMode(BLOCK_CONTROL_PASSTHROUGH_PIN, INPUT_PULLUP);
+  // Special switches
+  ControlSyncButton.begin();
+  PanicButton.begin();
+  ControlPassthroughSwitch.begin();
 }
 
 void loop() {
@@ -99,7 +99,8 @@ void loop() {
   }
 
   // Control Sync button
-  if (ControlSyncButton.wasPressed()) {
+  ControlSyncButton.update();
+  if (ControlSyncButton.wasSwitchedOn()) {
     // Switches
     for (int i = 0; i < ARRAY_SIZE(SWITCHES); i ++) {
       SWITCHES[i].forceUpdate(MIDI);
@@ -112,11 +113,15 @@ void loop() {
   }
 
   // Panic button
-  if (PanicButton.wasPressed()) {
+  PanicButton.update();
+  if (PanicButton.wasSwitchedOn()) {
     for (int i = 1; i <= 16; i ++) {
       MIDI.sendControlChange(123, 0, i);
     }
   }
+
+  // Control Passthrough Switch
+  ControlPassthroughSwitch.update();
 }
 
 void handleNoteOn(byte channel, byte note, byte velocity) {
@@ -129,14 +134,14 @@ void handleNoteOff(byte channel, byte note, byte velocity) {
 
 void handleControlChange(byte channel, byte control, byte value) {
   // Make sure control passthrough isn't blocked
-  if (digitalRead(BLOCK_CONTROL_PASSTHROUGH_PIN)) {
+  if (!ControlPassthroughSwitch.getCurrentState()) {
     MIDI.sendControlChange(control, value, channel);
   }
 }
 
 void handlePitchBend(byte channel, int bend) {
   // Make sure control passthrough isn't blocked
-  if (digitalRead(BLOCK_CONTROL_PASSTHROUGH_PIN)) {
+  if (!ControlPassthroughSwitch.getCurrentState()) {
     MIDI.sendPitchBend(bend, channel);
   }
 }
@@ -151,7 +156,7 @@ void handleAfterTouchPoly(byte channel, byte note, byte pressure) {
 
 void handleProgramChange(byte channel, byte program) {
   // Make sure control passthrough isn't blocked
-  if (digitalRead(BLOCK_CONTROL_PASSTHROUGH_PIN)) {
+  if (!ControlPassthroughSwitch.getCurrentState()) {
     MIDI.sendProgramChange(program, channel);
   }
 }

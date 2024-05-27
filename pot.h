@@ -2,7 +2,6 @@
 #define POT_H
 
 #include <Arduino.h>
-#include <MIDI.h>
 #include "muxer.h"
 #include "helpers.h"
 
@@ -12,29 +11,18 @@ class Pot {
   private:
     Muxer muxer;
     byte muxerChannel;
-    byte ccNumber;
-    byte channel;
-    byte outputMin;
-    byte outputMax;
-    int inputMin;
-    int inputMax;
 
-    int prevReadValue = 0;
-    int prevValue = 0;
+    int curValue = 0;
+    bool valueChanged = true;
 
   public:
     Pot(
       Muxer muxer,
-      byte muxerChannel,
-      byte ccNumber,
-      byte channel,
-      byte outputMin,
-      byte outputMax,
-      int inputMin,
-      int inputMax
+      byte muxerChannel
     );
-    void update(midi::MidiInterface<midi::SerialMIDI<HardwareSerial>> midiInstance);
-    void forceUpdate(midi::MidiInterface<midi::SerialMIDI<HardwareSerial>> midiInstance);
+    void update();
+    bool wasValueChanged();
+    int getCurrentValue();
 };
 
 #endif

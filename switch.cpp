@@ -1,48 +1,34 @@
 #include "switch.h"
 
 Switch::Switch(
-  byte pin,
-  byte ccNumber,
-  byte channel,
-  byte outputMin,
-  byte outputMax
+  byte pin
 ):
-  pin(pin),
-  ccNumber(ccNumber),
-  channel(channel),
-  outputMin(outputMin),
-  outputMax(outputMax)
+  pin(pin)
 {};
 
 void Switch::begin() {
   pinMode(pin, INPUT_PULLUP);
 }
 
-void Switch::update(midi::MidiInterface<midi::SerialMIDI<HardwareSerial>> midiInstance) {
-  bool pressed = !digitalRead(pin);
-
-  // Switched on
-  if (pressed && !prevPressed) {
-    midiInstance.sendControlChange(ccNumber, outputMax, channel);
-  }
-
-  // Switched off
-  if (!pressed && prevPressed) {
-    midiInstance.sendControlChange(ccNumber, outputMin, channel);
-  }
-
-  prevPressed = pressed;
+void Switch::update() {
+  prevPressed = curPressed;
+  curPressed = !digitalRead(pin);
 };
 
-void Switch::forceUpdate(midi::MidiInterface<midi::SerialMIDI<HardwareSerial>> midiInstance) {
-  bool pressed = !digitalRead(pin);
-
-  if (pressed) {
-    midiInstance.sendControlChange(ccNumber, outputMax, channel);
+bool Switch::wasSwitchedOn() {
+  if (curPressed && !prevPressed) {
+    return true;
   }
-  else {
-    midiInstance.sendControlChange(ccNumber, outputMin, channel);
-  }
+  return false;
+}
 
-  prevPressed = pressed;
+bool Switch::wasSwitchedOff() {
+  if (!curPressed && prevPressed) {
+    return true;
+  }
+  return false;
+}
+
+bool Switch::getCurrentState() {
+  return curPressed;
 }

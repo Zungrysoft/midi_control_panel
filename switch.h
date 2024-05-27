@@ -2,29 +2,25 @@
 #define SWITCH_H
 
 #include <Arduino.h>
-#include <MIDI.h>
+
+const byte DEBOUNCE_TIME_MS = 5;
 
 class Switch {
   private:
     byte pin;
-    byte ccNumber;
-    byte channel;
-    byte outputMin;
-    byte outputMax;
-
-    bool prevPressed = 0;
+    
+    bool curPressed = false;
+    bool prevPressed = false;
 
   public:
     Switch(
-      byte pin,
-      byte ccNumber,
-      byte channel,
-      byte outputMin,
-      byte outputMax
+      byte pin
     );
     void begin();
-    void update(midi::MidiInterface<midi::SerialMIDI<HardwareSerial>> midiInstance);
-    void forceUpdate(midi::MidiInterface<midi::SerialMIDI<HardwareSerial>> midiInstance);
+    void update();
+    bool wasSwitchedOn();
+    bool wasSwitchedOff();
+    bool getCurrentState();
 };
 
 #endif
