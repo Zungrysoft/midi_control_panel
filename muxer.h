@@ -11,6 +11,7 @@ class Muxer {
     byte pin0;
     byte pin1;
     byte pin2;
+    bool curChannel = 0;
 
   public:
     Muxer(
