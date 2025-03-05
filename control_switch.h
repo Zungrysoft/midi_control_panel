@@ -3,9 +3,10 @@
 
 #include <Arduino.h>
 #include <MIDI.h>
+#include "control.h"
 #include "switch.h"
 
-class ControlSwitch {
+class ControlSwitch : public Control {
   private:
     byte pin;
     byte ccNumber;

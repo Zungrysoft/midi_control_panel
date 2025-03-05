@@ -3,14 +3,14 @@
 
 #include <Arduino.h>
 #include <MIDI.h>
+#include "control.h"
 #include "pot.h"
 #include "muxer.h"
-#include "helpers.h"
 
-class ControlPot {
+class ControlPot : public Control {
   private:
-    Muxer muxer;
-    byte muxerChannel;
+    Muxer* muxer;
+    byte pin;
     byte ccNumber;
     byte channel;
     byte outputMin;
@@ -23,8 +23,17 @@ class ControlPot {
 
   public:
     ControlPot(
-      Muxer muxer,
-      byte muxerChannel,
+      Muxer* muxer,
+      byte pin,
+      byte ccNumber,
+      byte channel,
+      byte outputMin,
+      byte outputMax,
+      int inputMin,
+      int inputMax
+    );
+    ControlPot(
+      byte pin,
       byte ccNumber,
       byte channel,
       byte outputMin,

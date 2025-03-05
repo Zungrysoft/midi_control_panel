@@ -3,22 +3,24 @@
 
 #include <Arduino.h>
 #include "muxer.h"
-#include "helpers.h"
 
 const int DEFUZZ_BUFFER = 5;
 
 class Pot {
   private:
-    Muxer muxer;
-    byte muxerChannel;
+    Muxer* muxer;
+    byte pin;
 
     int curValue = 0;
     bool valueChanged = true;
 
   public:
     Pot(
-      Muxer muxer,
-      byte muxerChannel
+      Muxer* muxer,
+      byte pin
+    );
+    Pot(
+      byte pin
     );
     void update();
     bool wasValueChanged();
