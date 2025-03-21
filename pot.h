@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include "muxer.h"
 
-const int DEFUZZ_BUFFER = 5;
+const int DEFUZZ_BUFFER = 15;
 
 class Pot {
   private:

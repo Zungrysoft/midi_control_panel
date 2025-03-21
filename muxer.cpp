@@ -22,11 +22,11 @@ int Muxer::read(byte channel) {
   // Switch channel if needed
   if (curChannel != channel) {
     curChannel = channel;
-    delay(SLEEP_TIME_MS);
+    delayMicroseconds(SLEEP_TIME_MICROSECONDS);
     digitalWrite(pin0, channel & 1<<0);
     digitalWrite(pin1, channel & 1<<1);
     digitalWrite(pin2, channel & 1<<2);
-    delay(SLEEP_TIME_MS);
+    delayMicroseconds(SLEEP_TIME_MICROSECONDS);
   }
   
   return analogRead(analogPin);

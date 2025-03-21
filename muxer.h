@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 
-const int SLEEP_TIME_MS = 10;
+const int SLEEP_TIME_MICROSECONDS = 10;
 
 class Muxer {
   private:
