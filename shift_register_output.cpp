@@ -44,8 +44,7 @@ void ShiftRegisterOutput::update() {
 };
 
 void ShiftRegisterOutput::setBrightness(int brightness) {
-  analogWrite(outputEnablePin, 1023 - brightness);
-  Serial.println(1023 - brightness);
+  analogWrite(outputEnablePin, 255 - brightness);
 }
 
 void ShiftRegisterOutput::write(int index, bool state) {

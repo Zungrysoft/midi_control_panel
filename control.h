@@ -9,6 +9,7 @@ class Control {
     virtual void begin() {};
     virtual void update(midi::MidiInterface<midi::SerialMIDI<HardwareSerial>> midiInstance) = 0;
     virtual void forceUpdate(midi::MidiInterface<midi::SerialMIDI<HardwareSerial>> midiInstance) = 0;
+    virtual void setBrightness(int brightness) {};
 };
 
 #endif

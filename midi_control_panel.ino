@@ -7,9 +7,12 @@
 #include "shift_register_output.h"
 #include "control.h"
 #include "control_switch.h"
+#include "control_momentary_switch.h"
+#include "control_leslie_switch.h"
 #include "control_pot.h"
 #include "control_dial.h"
 #include "control_selector.h"
+#include "indicator_light.h"
 #include "switch.h"
 
 #define ARRAY_SIZE(x) (sizeof((x)) / sizeof((x)[0]))
@@ -71,29 +74,33 @@ int SELECTOR_1_CHANNELS[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 // Configure MIDI controls
 const Control* CONTROLS[] = {
 
-  // // Toggle Switches
-  // new ControlSwitch(22, 66, 1, 0, 127),
-  // new ControlSwitch(23, 66, 1, 0, 127),
-  // new ControlSwitch(24, 66, 1, 0, 127),
-  // new ControlSwitch(25, 66, 1, 0, 127),
-  // new ControlSwitch(26, 66, 1, 0, 127),
-  // new ControlSwitch(27, 66, 1, 0, 127),
-  // new ControlSwitch(28, 66, 1, 0, 127),
+  // 3-Position Toggle Switches
+  new ControlSwitch(24, 66, 1, 0, 127),
+  new ControlSwitch(25, 66, 1, 0, 127),
+  new ControlSwitch(26, 66, 1, 0, 127),
+  new ControlSwitch(27, 66, 1, 0, 127),
+
+  // Toggle Switches
+  new ControlSwitch(28, 66, 1, 0, 127),
   // new ControlSwitch(29, 66, 1, 0, 127),
-  // new ControlSwitch(30, 66, 1, 0, 127),
-  // new ControlSwitch(31, 66, 1, 0, 127),
+  new ControlSwitch(30, 66, 1, 0, 127),
+  new ControlSwitch(31, 66, 1, 0, 127),
+  new ControlSwitch(32, 66, 1, 0, 127),
+  new ControlSwitch(33, 66, 1, 0, 127),
+  new ControlSwitch(34, 66, 1, 0, 127),
+  new ControlSwitch(35, 66, 1, 0, 127),
+  new ControlSwitch(36, 66, 1, 0, 127),
+  new ControlSwitch(37, 66, 1, 0, 127),
 
-  // // Rocker Switches
-  // new ControlSwitch(23, 66, 1, 0, 127),
-  // new ControlSwitch(22, 70, 1, 0, 127),
-  // new ControlSwitch(21, 71, 1, 0, 127),
-  // new ControlSwitch(20, 72, 1, 0, 127),
+  // Rocker Switches
+  new ControlSwitch(23, 66, 1, 0, 127),
+  new ControlSwitch(22, 70, 1, 0, 127),
+  new ControlSwitch(21, 71, 1, 0, 127),
+  new ControlSwitch(20, 72, 1, 0, 127),
 
-  // // Foot Switches
-  // new ControlSwitch(41, 72, 1, 0, 127),
-  // new ControlSwitch(42, 72, 1, 0, 127),
-  // new ControlSwitch(43, 72, 1, 0, 127),
-  // new ControlSwitch(44, 72, 1, 0, 127),
+  // Foot Switches
+  new ControlLeslieSwitch(47, 29, 2, 66, 1, 0, 63, 127),
+  new ControlMomentarySwitch(48, 5, 72, 1, 0, 127),
 
   // // Potentiometers
   // new ControlPot(4, 66, 1, 0, 127, 0, 1024),
@@ -107,8 +114,8 @@ const Control* CONTROLS[] = {
   // new ControlPot(8, 7, 1, 0, 127, 0, 1024),
   // new ControlPot(9, 7, 1, 0, 127, 0, 1024),
 
-  // // Dials
-  // new ControlDial(10, 73, 1, 6, DIAL_0_INPUT_VALUES, DIAL_0_OUTPUT_VALUES),
+  // Dials
+  new ControlDial(10, 73, 1, 6, DIAL_0_INPUT_VALUES, DIAL_0_OUTPUT_VALUES),
 
   // Selectors
   new ControlSelector(
@@ -129,7 +136,6 @@ const Control* CONTROLS[] = {
     SELECTOR_1_CC_NUMBERS,
     SELECTOR_1_CHANNELS
   ),
-
   
   // new ControlPot(MUXERS[0], 0, 0, 1, 0, 127, 0, 1024),
   // new ControlPot(MUXERS[0], 1, 1, 1, 0, 127, 0, 1024),
@@ -166,32 +172,29 @@ const Control* CONTROLS[] = {
   // new ControlPot(MUXERS[3], 5, 29, 1, 0, 127, 0, 1024),
   // new ControlPot(MUXERS[3], 6, 30, 1, 0, 127, 0, 1024),
   // new ControlPot(MUXERS[3], 7, 31, 1, 0, 127, 0, 1024),
-
 };
 
 // Configure special switches
-const Switch ControlSyncButton = Switch(39);
-const Switch PanicButton = Switch(38);
-const Switch TransposeButton = Switch(37);
-const Switch OperationModeSwitch = Switch(40);
-const Switch LightBrightnessSwitch = Switch(36);
+const Switch ControlSyncButton = Switch(45);
+const Switch PanicButton = Switch(44);
+const Switch TransposeButton = Switch(43);
+const Switch OperationModeSwitch = Switch(46);
+const Switch LightBrightnessSwitch = Switch(42);
 
-const Switch OctaveUpChannel1Button = Switch(20);
-const Switch OctaveDownChannel1Button = Switch(21);
-const Switch OctaveUpChannel2Button = Switch(33);
-const Switch OctaveDownChannel2Button = Switch(32);
+const Switch OctaveUpChannel1Button = Switch(38);
+const Switch OctaveDownChannel1Button = Switch(39);
+const Switch OctaveUpChannel2Button = Switch(40);
+const Switch OctaveDownChannel2Button = Switch(41);
 
 const byte octaveUpChannel1LightIndices[] = {19, 29, 28};
 const byte octaveDownChannel1LightIndices[] = {27, 24, 17};
 const byte octaveUpChannel2LightIndices[] = {31, 30, 18};
 const byte octaveDownChannel2LightIndices[] = {25, 26, 16};
 
-const byte indicatorLight0Pin = 2;
-const byte indicatorLight1Pin = 3;
-const byte indicatorLight2Pin = 4;
-const byte indicatorLight3Pin = 5;
+const IndicatorLight noteIndicator = IndicatorLight(4);
+
 const byte lightBrightnessHigh = 255;
-const byte lightBrightnessLow = 20;
+const byte lightBrightnessLow = 10;
 
 // =========
 // Main Code
@@ -199,6 +202,8 @@ const byte lightBrightnessLow = 20;
 
 short int octaveChannel1 = 0;
 short int octaveChannel2 = 0;
+
+long unsigned int lastControlChange = 0;
 
 void setup() {
   // MIDI setup
@@ -251,6 +256,16 @@ void setup() {
   // Special controls
   ControlSyncButton.begin();
   PanicButton.begin();
+  TransposeButton.begin();
+  OperationModeSwitch.begin();
+  LightBrightnessSwitch.begin();
+
+  OctaveUpChannel1Button.begin();
+  OctaveDownChannel1Button.begin();
+  OctaveUpChannel2Button.begin();
+  OctaveDownChannel2Button.begin();
+
+  noteIndicator.begin();
 }
 
 void loop() {
@@ -259,12 +274,17 @@ void loop() {
   MIDI_IN_2.read();
   MIDI_IN_3.read();
 
+  // Light brightness switch
+  LightBrightnessSwitch.update();
+  int lightBrightness = LightBrightnessSwitch.getCurrentState() ? lightBrightnessHigh : lightBrightnessLow;
+
   // Update input shift register
   SHIFT_REGISTER_INPUT->update();
 
   // Update MIDI controls
   for (int i = 0; i < ARRAY_SIZE(CONTROLS); i ++) {
     CONTROLS[i]->update(MIDI_OUT);
+    CONTROLS[i]->setBrightness(lightBrightness);
   }
 
   // Control Sync button
@@ -318,10 +338,14 @@ void loop() {
   }
 
   // Lights
+  noteIndicator.setState(millis() - lastControlChange < 10);
+  noteIndicator.update();
   SHIFT_REGISTER_OUTPUT->update();
+  SHIFT_REGISTER_OUTPUT->setBrightness(lightBrightness);
 }
 
 void handleNoteOn(byte channel, byte note, byte velocity) {
+  lastControlChange = millis();
   MIDI_OUT.sendNoteOn(note, velocity, channel);
 }
 

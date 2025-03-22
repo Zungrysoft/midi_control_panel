@@ -41,6 +41,7 @@ class ControlPot : public Control {
       int inputMin,
       int inputMax
     );
+    void begin();
     void update(midi::MidiInterface<midi::SerialMIDI<HardwareSerial>> midiInstance);
     void forceUpdate(midi::MidiInterface<midi::SerialMIDI<HardwareSerial>> midiInstance);
 };

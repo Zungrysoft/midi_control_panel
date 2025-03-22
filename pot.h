@@ -4,7 +4,8 @@
 #include <Arduino.h>
 #include "muxer.h"
 
-const int DEFUZZ_BUFFER = 15;
+const int DEFUZZ_BUFFER = 5;
+const int TIME_AVERAGING_WINDOW = 10;
 
 class Pot {
   private:
@@ -12,7 +13,10 @@ class Pot {
     byte pin;
 
     int curValue = 0;
+    int readValues[TIME_AVERAGING_WINDOW];
     bool valueChanged = true;
+
+    int readFromPin();
 
   public:
     Pot(
@@ -22,6 +26,7 @@ class Pot {
     Pot(
       byte pin
     );
+    void begin();
     void update();
     bool wasValueChanged();
     int getCurrentValue();

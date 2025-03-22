@@ -41,6 +41,10 @@ ControlPot::ControlPot(
   potObject(Pot(pin))
 {};
 
+void ControlPot::begin() {
+  potObject.begin();
+};
+
 void ControlPot::update(midi::MidiInterface<midi::SerialMIDI<HardwareSerial>> midiInstance) {
   potObject.update();
   int readValue = potObject.getCurrentValue();
