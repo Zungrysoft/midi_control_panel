@@ -111,8 +111,8 @@ const Control* CONTROLS[] = {
   // // Drawbars
 
   // // Expression Pedals
-  // new ControlPot(8, 7, 1, 0, 127, 0, 1024),
-  // new ControlPot(9, 7, 1, 0, 127, 0, 1024),
+  new ControlPot(8, 7, 1, 0, 127, 0, 1024),
+  new ControlPot(9, 8, 1, 0, 127, 0, 1024),
 
   // Dials
   new ControlDial(10, 73, 1, 6, DIAL_0_INPUT_VALUES, DIAL_0_OUTPUT_VALUES),
@@ -191,7 +191,7 @@ const byte octaveDownChannel1LightIndices[] = {27, 24, 17};
 const byte octaveUpChannel2LightIndices[] = {31, 30, 18};
 const byte octaveDownChannel2LightIndices[] = {25, 26, 16};
 
-const IndicatorLight noteIndicator = IndicatorLight(4);
+const IndicatorLight noteIndicator = IndicatorLight(3);
 
 const byte lightBrightnessHigh = 255;
 const byte lightBrightnessLow = 10;
@@ -202,8 +202,14 @@ const byte lightBrightnessLow = 10;
 
 short int octaveChannel1 = 0;
 short int octaveChannel2 = 0;
+short int transpose = 1;
+bool transposeEnabled = false;
 
-long unsigned int lastControlChange = 0;
+byte noteVelocitiesChannel1[128];
+byte noteVelocitiesChannel2[128];
+byte noteVelocitiesChannel3[128];
+
+long unsigned int lastNote = 0;
 
 void setup() {
   // MIDI setup
@@ -241,7 +247,6 @@ void setup() {
   // Init shift registers
   SHIFT_REGISTER_INPUT->begin();
   SHIFT_REGISTER_OUTPUT->begin();
-  // SHIFT_REGISTER_OUTPUT->setBrightness(2);
 
   // Init muxers
   for (int i = 0; i < ARRAY_SIZE(MUXERS); i ++) {
@@ -251,6 +256,14 @@ void setup() {
   // Init MIDI controls
   for (int i = 0; i < ARRAY_SIZE(CONTROLS); i ++) {
     CONTROLS[i]->begin();
+  }
+
+  // Initialize noteVelocities lists
+  // 0 indicates note off in the MIDI standard
+  for (int i = 0; i < 128; i ++) {
+    noteVelocitiesChannel1[i] = 0;
+    noteVelocitiesChannel2[i] = 0;
+    noteVelocitiesChannel3[i] = 0;
   }
 
   // Special controls
@@ -310,23 +323,19 @@ void loop() {
   OctaveDownChannel2Button.update();
   if (OctaveUpChannel1Button.wasSwitchedOn() && octaveChannel1 < OCTAVE_SWITCH_RANGE) {
     octaveChannel1 ++;
-
-    // Iterate over all currently on notes, save them,
+    shiftNotes(12, 1);
   }
   if (OctaveDownChannel1Button.wasSwitchedOn() && octaveChannel1 > -OCTAVE_SWITCH_RANGE) {
     octaveChannel1 --;
-
-    // Iterate over all currently on notes, save them,
+    shiftNotes(-12, 1);
   }
   if (OctaveUpChannel2Button.wasSwitchedOn() && octaveChannel2 < OCTAVE_SWITCH_RANGE) {
     octaveChannel2 ++;
-
-    // Iterate over all currently on notes, save them,
+    shiftNotes(12, 2);
   }
   if (OctaveDownChannel2Button.wasSwitchedOn() && octaveChannel2 > -OCTAVE_SWITCH_RANGE) {
     octaveChannel2 --;
-
-    // Iterate over all currently on notes, save them,
+    shiftNotes(-12, 2);
   }
 
   // Update Octave indicator lights
@@ -338,19 +347,102 @@ void loop() {
   }
 
   // Lights
-  noteIndicator.setState(millis() - lastControlChange < 10);
+  noteIndicator.setState(millis() - lastNote < 10);
+  noteIndicator.setBrightness(lightBrightness);
   noteIndicator.update();
   SHIFT_REGISTER_OUTPUT->update();
   SHIFT_REGISTER_OUTPUT->setBrightness(lightBrightness);
 }
 
+// When Octave or Transpose setting is changed, all active notes need to be shifted
+// to match the new settings, triggering Note-On and Note-Off messages as needed
+void shiftNotes(short int offset, byte channel) {
+  // Early exit there is no offset
+  if (offset == 0) {
+    return;
+  }
+
+  // Transpose does not apply to channels > 3
+  if (channel > 3) {
+    return;
+  }
+
+  // Iterate forwards if shifting down and backwards if shifting up
+  // to prevent notes from writing over each other in the array
+  int i = offset < 0 ? 0 : 128 - 1;
+  while ((offset < 0 && i < 128) || (offset > 0 && i >= 0)) {
+    int iNew = i + offset;
+    byte velocity = getNoteVelocity(i, channel);
+    if (velocity > 0) {
+      if (iNew == constrain(iNew, 0, 127)) {
+        setNoteVelocity(iNew, velocity, channel);
+        MIDI_OUT.sendNoteOn(iNew, velocity, channel);
+      }
+      setNoteVelocity(i, 0, channel);
+      MIDI_OUT.sendNoteOff(i, 0, channel);
+    }
+
+    i += offset < 0 ? 1 : -1;
+  }
+}
+
+void setNoteVelocity(byte note, byte velocity, byte channel) {
+  if (channel == 1) {
+    noteVelocitiesChannel1[note] = velocity;
+  }
+  else if (channel == 2) {
+    noteVelocitiesChannel2[note] = velocity;
+  }
+  else if (channel == 3) {
+    noteVelocitiesChannel3[note] = velocity;
+  }
+}
+
+byte getNoteVelocity(byte note, byte channel) {
+  if (channel == 1) {
+    return noteVelocitiesChannel1[note];
+  }
+  if (channel == 2) {
+    return noteVelocitiesChannel2[note];
+  }
+  if (channel == 3) {
+    return noteVelocitiesChannel3[note];
+  }
+  return 0;
+}
+
+byte transposeNote(byte note, byte channel) {
+  byte ret = note;
+
+  if (transposeEnabled) {
+    note += transpose;
+  }
+
+  if (channel == 1) {
+    ret += octaveChannel1 * 12;
+  }
+  else if (channel == 2) {
+    ret += octaveChannel2 * 12;
+  }
+
+  return ret;
+}
+
 void handleNoteOn(byte channel, byte note, byte velocity) {
-  lastControlChange = millis();
-  MIDI_OUT.sendNoteOn(note, velocity, channel);
+  lastNote = millis();
+  byte transposedNote = transposeNote(note, channel);
+  if (transposedNote == constrain(transposedNote, 0, 127)) {
+    MIDI_OUT.sendNoteOn(transposedNote, velocity, channel);
+    setNoteVelocity(transposedNote, velocity, channel);
+  }
 }
 
 void handleNoteOff(byte channel, byte note, byte velocity) {
-  MIDI_OUT.sendNoteOff(note, velocity, channel);
+  byte transposedNote = transposeNote(note, channel);
+  if (transposedNote == constrain(transposedNote, 0, 127)) {
+    MIDI_OUT.sendNoteOff(transposedNote, velocity, channel);
+    setNoteVelocity(transposedNote, 0, channel);
+  }
 }
 
 void handleControlChange(byte channel, byte control, byte value) {
