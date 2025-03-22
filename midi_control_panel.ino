@@ -57,8 +57,8 @@ const ShiftRegisterOutput* SHIFT_REGISTER_OUTPUT =
   new ShiftRegisterOutput(10, 12, 11, 13, 4);
 
 // Declare dial input and output arrays
-int DIAL_0_INPUT_VALUES[] = {0, 175, 512, 680, 930, 1024};
-int DIAL_0_OUTPUT_VALUES[] = {0, 25, 51, 76, 102, 127};
+int DIAL_0_INPUT_VALUES[] = {0, 90, 336, 507, 844, 1023};
+int DIAL_0_OUTPUT_VALUES[] = {127, 102, 76, 51, 25, 0};
 
 // Declare selector pin arrays
 int SELECTOR_0_INPUT_INDICES[] = {20, 21, 16, 17, 12, 13, 8, 9, 7, 6};
@@ -175,9 +175,9 @@ const Control* CONTROLS[] = {
 };
 
 // Configure special switches
-const Switch ControlSyncButton = Switch(45);
-const Switch PanicButton = Switch(44);
-const Switch TransposeButton = Switch(43);
+const Switch ControlSyncButton = Switch(44);
+const Switch PanicButton = Switch(43);
+const Switch TransposeButton = Switch(45);
 const Switch OperationModeSwitch = Switch(46);
 const Switch LightBrightnessSwitch = Switch(42);
 
@@ -192,6 +192,7 @@ const byte octaveUpChannel2LightIndices[] = {31, 30, 18};
 const byte octaveDownChannel2LightIndices[] = {25, 26, 16};
 
 const IndicatorLight noteIndicator = IndicatorLight(3);
+const IndicatorLight transposeIndicator = IndicatorLight(4);
 
 const byte lightBrightnessHigh = 255;
 const byte lightBrightnessLow = 10;
@@ -204,6 +205,8 @@ short int octaveChannel1 = 0;
 short int octaveChannel2 = 0;
 short int transpose = 1;
 bool transposeEnabled = false;
+bool transposeWaitingForNote = false;
+short int transposeSelected = 0;
 
 byte noteVelocitiesChannel1[128];
 byte noteVelocitiesChannel2[128];
@@ -311,8 +314,40 @@ void loop() {
   // Panic button
   PanicButton.update();
   if (PanicButton.wasSwitchedOn()) {
+    // Send panic signal on all 16 channels
     for (int i = 1; i <= 16; i ++) {
       MIDI_OUT.sendControlChange(123, 0, i);
+    }
+
+    // Set all note velocities to 0
+    for (int i = 0; i < 128; i ++) {
+      noteVelocitiesChannel1[i] = 0;
+      noteVelocitiesChannel2[i] = 0;
+      noteVelocitiesChannel3[i] = 0;
+    }
+  }
+
+  // Transpose setting
+  TransposeButton.update();
+  if (TransposeButton.wasSwitchedOn()) {
+    transposeWaitingForNote = true;
+    transposeSelected = transpose;
+  }
+  else if (TransposeButton.wasSwitchedOff()) {
+    transposeWaitingForNote = false;
+    short int prevTranspose = transposeEnabled ? transpose : 0;
+    if (transposeSelected != prevTranspose && transposeSelected != 0) {
+      shiftNotes(transposeSelected - prevTranspose);
+      transposeEnabled = true;
+      transpose = transposeSelected;
+    }
+    else if (!transposeEnabled && transposeSelected != 0) {
+      shiftNotes(transposeSelected);
+      transposeEnabled = true;
+    }
+    else {
+      shiftNotes(-transposeSelected);
+      transposeEnabled = false;
     }
   }
 
@@ -350,12 +385,21 @@ void loop() {
   noteIndicator.setState(millis() - lastNote < 10);
   noteIndicator.setBrightness(lightBrightness);
   noteIndicator.update();
+  transposeIndicator.setState(transposeEnabled);
+  transposeIndicator.setBrightness(lightBrightness);
+  transposeIndicator.update();
   SHIFT_REGISTER_OUTPUT->update();
   SHIFT_REGISTER_OUTPUT->setBrightness(lightBrightness);
 }
 
 // When Octave or Transpose setting is changed, all active notes need to be shifted
 // to match the new settings, triggering Note-On and Note-Off messages as needed
+void shiftNotes(short int offset) {
+  shiftNotes(offset, 1);
+  shiftNotes(offset, 2);
+  shiftNotes(offset, 3);
+}
+
 void shiftNotes(short int offset, byte channel) {
   // Early exit there is no offset
   if (offset == 0) {
@@ -411,11 +455,26 @@ byte getNoteVelocity(byte note, byte channel) {
   return 0;
 }
 
+bool getAreNotesActive() {
+  for (int i = 0; i < 128; i ++) {
+    if (noteVelocitiesChannel1[i] > 0) {
+      return true;
+    }
+    if (noteVelocitiesChannel2[i] > 0) {
+      return true;
+    }
+    if (noteVelocitiesChannel3[i] > 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
 byte transposeNote(byte note, byte channel) {
   byte ret = note;
 
-  if (transposeEnabled) {
-    note += transpose;
+  if (transposeEnabled && channel <= 3) {
+    ret += transpose;
   }
 
   if (channel == 1) {
@@ -429,11 +488,25 @@ byte transposeNote(byte note, byte channel) {
 }
 
 void handleNoteOn(byte channel, byte note, byte velocity) {
-  lastNote = millis();
-  byte transposedNote = transposeNote(note, channel);
-  if (transposedNote == constrain(transposedNote, 0, 127)) {
-    MIDI_OUT.sendNoteOn(transposedNote, velocity, channel);
-    setNoteVelocity(transposedNote, velocity, channel);
+  if (transposeWaitingForNote) {
+    transposeSelected = note - 60;
+    if (transposeSelected >= 0) {
+      transposeSelected = transposeSelected % 12;
+    }
+    else {
+      transposeSelected = (transposeSelected % 12) - 12;
+      if (transposeSelected == -12) {
+        transposeSelected = 0;
+      }
+    }
+  }
+  else {
+    lastNote = millis();
+    byte transposedNote = transposeNote(note, channel);
+    if (transposedNote == constrain(transposedNote, 0, 127)) {
+      MIDI_OUT.sendNoteOn(transposedNote, velocity, channel);
+      setNoteVelocity(transposedNote, velocity, channel);
+    }
   }
 }
 
