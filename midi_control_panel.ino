@@ -2,29 +2,14 @@
 // Imports and Definitions
 // =======================
 #include <MIDI.h>
-#include "muxer.h"
-#include "shift_register_input.h"
-#include "shift_register_output.h"
+#include "control_set.h"
 #include "control.h"
-#include "control_switch.h"
-#include "control_momentary_switch.h"
-#include "control_leslie_switch.h"
-#include "control_pot.h"
-#include "control_dial.h"
-#include "control_selector.h"
+#include "config_laptop.h"
+#include "config_synth.h"
 #include "indicator_light.h"
 #include "switch.h"
 
 #define ARRAY_SIZE(x) (sizeof((x)) / sizeof((x)[0]))
-
-#define MUX0 4
-#define MUX1 6
-#define MUX2 7
-#define MUX3 5
-#define MUX4 2
-#define MUX5 1
-#define MUX6 0
-#define MUX7 3
 
 #define BLOCK_CC_PASSTHROUGH true
 
@@ -33,146 +18,13 @@ MIDI_CREATE_INSTANCE(HardwareSerial, Serial2, MIDI_IN_2);
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial3, MIDI_IN_3);
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial, MIDI_OUT);
 
+void(* reset) (void) = 0;
+
 // =============
 // Configuration
 // =============
 
 const int OCTAVE_SWITCH_RANGE = 3;
-
-// Configure muxers
-const byte MUXER_SWITCH_A = 49;
-const byte MUXER_SWITCH_B = 50;
-const byte MUXER_SWITCH_C = 51;
-const Muxer* MUXERS[] = {
-  new Muxer(0, MUXER_SWITCH_A, MUXER_SWITCH_B, MUXER_SWITCH_C),
-  new Muxer(1, MUXER_SWITCH_A, MUXER_SWITCH_B, MUXER_SWITCH_C),
-  new Muxer(2, MUXER_SWITCH_A, MUXER_SWITCH_B, MUXER_SWITCH_C),
-  new Muxer(3, MUXER_SWITCH_A, MUXER_SWITCH_B, MUXER_SWITCH_C),
-};
-
-const ShiftRegisterInput* SHIFT_REGISTER_INPUT =
-  new ShiftRegisterInput(6, 53, 52, 3);
-
-const ShiftRegisterOutput* SHIFT_REGISTER_OUTPUT =
-  new ShiftRegisterOutput(10, 12, 11, 13, 4);
-
-// Declare dial input and output arrays
-int DIAL_0_INPUT_VALUES[] = {0, 90, 336, 507, 844, 1023};
-int DIAL_0_OUTPUT_VALUES[] = {127, 102, 76, 51, 25, 0};
-
-// Declare selector pin arrays
-int SELECTOR_0_INPUT_INDICES[] = {20, 21, 16, 17, 12, 13, 8, 9, 7, 6};
-int SELECTOR_0_OUTPUT_INDICES[] = {21, 23, 8, 11, 14, 15, 0, 3, 6, 7};
-int SELECTOR_0_CC_NUMBERS[] = {66, 67, 68, 69, 70, 71, 72, 73, 74, 75};
-int SELECTOR_0_CHANNELS[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-
-int SELECTOR_1_INPUT_INDICES[] = {23, 22, 18, 19, 14, 15, 10, 11, 4, 5};
-int SELECTOR_1_OUTPUT_INDICES[] = {20, 22, 10, 9, 12, 13, 1, 2, 4, 5};
-int SELECTOR_1_CC_NUMBERS[] = {76, 77, 78, 79, 80, 81, 82, 83, 84, 85};
-int SELECTOR_1_CHANNELS[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-
-// Configure MIDI controls
-const Control* CONTROLS[] = {
-
-  // 3-Position Toggle Switches
-  new ControlSwitch(24, 66, 1, 0, 127),
-  new ControlSwitch(25, 66, 1, 0, 127),
-  new ControlSwitch(26, 66, 1, 0, 127),
-  new ControlSwitch(27, 66, 1, 0, 127),
-
-  // Toggle Switches
-  new ControlSwitch(28, 66, 1, 0, 127),
-  // new ControlSwitch(29, 66, 1, 0, 127),
-  new ControlSwitch(30, 66, 1, 0, 127),
-  new ControlSwitch(31, 66, 1, 0, 127),
-  new ControlSwitch(32, 66, 1, 0, 127),
-  new ControlSwitch(33, 66, 1, 0, 127),
-  new ControlSwitch(34, 66, 1, 0, 127),
-  new ControlSwitch(35, 66, 1, 0, 127),
-  new ControlSwitch(36, 66, 1, 0, 127),
-  new ControlSwitch(37, 66, 1, 0, 127),
-
-  // Rocker Switches
-  new ControlSwitch(23, 66, 1, 0, 127),
-  new ControlSwitch(22, 70, 1, 0, 127),
-  new ControlSwitch(21, 71, 1, 0, 127),
-  new ControlSwitch(20, 72, 1, 0, 127),
-
-  // Foot Switches
-  new ControlLeslieSwitch(47, 29, 2, 66, 1, 0, 63, 127),
-  new ControlMomentarySwitch(48, 5, 72, 1, 0, 127),
-
-  // // Potentiometers
-  // new ControlPot(4, 66, 1, 0, 127, 0, 1024),
-  // new ControlPot(5, 66, 1, 0, 127, 0, 1024),
-  // new ControlPot(6, 66, 1, 0, 127, 0, 1024),
-  // new ControlPot(7, 66, 1, 0, 127, 0, 1024),
-
-  // // Drawbars
-
-  // // Expression Pedals
-  new ControlPot(8, 7, 1, 0, 127, 0, 1024),
-  new ControlPot(9, 8, 1, 0, 127, 0, 1024),
-
-  // Dials
-  new ControlDial(10, 73, 1, 6, DIAL_0_INPUT_VALUES, DIAL_0_OUTPUT_VALUES),
-
-  // Selectors
-  new ControlSelector(
-    SHIFT_REGISTER_INPUT,
-    SHIFT_REGISTER_OUTPUT,
-    10,
-    SELECTOR_0_INPUT_INDICES,
-    SELECTOR_0_OUTPUT_INDICES,
-    SELECTOR_0_CC_NUMBERS,
-    SELECTOR_0_CHANNELS
-  ),
-  new ControlSelector(
-    SHIFT_REGISTER_INPUT,
-    SHIFT_REGISTER_OUTPUT,
-    10,
-    SELECTOR_1_INPUT_INDICES,
-    SELECTOR_1_OUTPUT_INDICES,
-    SELECTOR_1_CC_NUMBERS,
-    SELECTOR_1_CHANNELS
-  ),
-  
-  // new ControlPot(MUXERS[0], 0, 0, 1, 0, 127, 0, 1024),
-  // new ControlPot(MUXERS[0], 1, 1, 1, 0, 127, 0, 1024),
-  // new ControlPot(MUXERS[0], 2, 2, 1, 0, 127, 0, 1024),
-  // new ControlPot(MUXERS[0], 3, 3, 1, 0, 127, 0, 1024),
-  // new ControlPot(MUXERS[0], 4, 4, 1, 0, 127, 0, 1024),
-  // new ControlPot(MUXERS[0], 5, 5, 1, 0, 127, 0, 1024),
-  // new ControlPot(MUXERS[0], 6, 6, 1, 0, 127, 0, 1024),
-  // new ControlPot(MUXERS[0], 7, 7, 1, 0, 127, 0, 1024),
-  
-  // new ControlPot(MUXERS[1], 0, 8, 1, 0, 127, 0, 1024),
-  // new ControlPot(MUXERS[1], 1, 9, 1, 0, 127, 0, 1024),
-  // new ControlPot(MUXERS[1], 2, 10, 1, 0, 127, 0, 1024),
-  // new ControlPot(MUXERS[1], 3, 11, 1, 0, 127, 0, 1024),
-  // new ControlPot(MUXERS[1], 4, 12, 1, 0, 127, 0, 1024),
-  // new ControlPot(MUXERS[1], 5, 13, 1, 0, 127, 0, 1024),
-  // new ControlPot(MUXERS[1], 6, 14, 1, 0, 127, 0, 1024),
-  // new ControlPot(MUXERS[1], 7, 15, 1, 0, 127, 0, 1024),
-  
-  // new ControlPot(MUXERS[2], 0, 16, 1, 0, 127, 0, 1024),
-  // new ControlPot(MUXERS[2], 1, 17, 1, 0, 127, 0, 1024),
-  // new ControlPot(MUXERS[2], 2, 18, 1, 0, 127, 0, 1024),
-  // new ControlPot(MUXERS[2], 3, 19, 1, 0, 127, 0, 1024),
-  // new ControlPot(MUXERS[2], 4, 20, 1, 0, 127, 0, 1024),
-  // new ControlPot(MUXERS[2], 5, 21, 1, 0, 127, 0, 1024),
-  // new ControlPot(MUXERS[2], 6, 22, 1, 0, 127, 0, 1024),
-  // new ControlPot(MUXERS[2], 7, 23, 1, 0, 127, 0, 1024),
-  
-  // new ControlPot(MUXERS[3], 0, 24, 1, 0, 127, 0, 1024),
-  // new ControlPot(MUXERS[3], 1, 25, 1, 0, 127, 0, 1024),
-  // new ControlPot(MUXERS[3], 2, 26, 1, 0, 127, 0, 1024),
-  // new ControlPot(MUXERS[3], 3, 27, 1, 0, 127, 0, 1024),
-  // new ControlPot(MUXERS[3], 4, 28, 1, 0, 127, 0, 1024),
-  // new ControlPot(MUXERS[3], 5, 29, 1, 0, 127, 0, 1024),
-  // new ControlPot(MUXERS[3], 6, 30, 1, 0, 127, 0, 1024),
-  // new ControlPot(MUXERS[3], 7, 31, 1, 0, 127, 0, 1024),
-};
 
 // Configure special switches
 const Switch ControlSyncButton = Switch(44);
@@ -200,6 +52,8 @@ const byte lightBrightnessLow = 10;
 // =========
 // Main Code
 // =========
+
+ControlSet controls;
 
 short int octaveChannel1 = 0;
 short int octaveChannel2 = 0;
@@ -247,19 +101,23 @@ void setup() {
   MIDI_IN_3.setHandleAfterTouchPoly(handleAfterTouchPoly);
   MIDI_IN_3.setHandleProgramChange(handleProgramChange);
 
+  // Set control scheme
+  OperationModeSwitch.begin();
+  OperationModeSwitch.update();
+  bool operationMode = OperationModeSwitch.getCurrentState();
+  controls = operationMode ? getControlsForLaptop() : getControlsForSynth();
+
   // Init shift registers
   SHIFT_REGISTER_INPUT->begin();
   SHIFT_REGISTER_OUTPUT->begin();
 
   // Init muxers
-  for (int i = 0; i < ARRAY_SIZE(MUXERS); i ++) {
+  for (int i = 0; i < MUXERS_LEN; i ++) {
     MUXERS[i]->begin();
   }
 
   // Init MIDI controls
-  for (int i = 0; i < ARRAY_SIZE(CONTROLS); i ++) {
-    CONTROLS[i]->begin();
-  }
+  controls.begin();
 
   // Initialize noteVelocities lists
   // 0 indicates note off in the MIDI standard
@@ -273,7 +131,6 @@ void setup() {
   ControlSyncButton.begin();
   PanicButton.begin();
   TransposeButton.begin();
-  OperationModeSwitch.begin();
   LightBrightnessSwitch.begin();
 
   OctaveUpChannel1Button.begin();
@@ -282,6 +139,7 @@ void setup() {
   OctaveDownChannel2Button.begin();
 
   noteIndicator.begin();
+  transposeIndicator.begin();
 }
 
 void loop() {
@@ -298,17 +156,19 @@ void loop() {
   SHIFT_REGISTER_INPUT->update();
 
   // Update MIDI controls
-  for (int i = 0; i < ARRAY_SIZE(CONTROLS); i ++) {
-    CONTROLS[i]->update(MIDI_OUT);
-    CONTROLS[i]->setBrightness(lightBrightness);
+  controls.update(MIDI_OUT);
+  controls.setBrightness(lightBrightness);
+
+  // Operation Mode switch
+  OperationModeSwitch.update();
+  if (OperationModeSwitch.wasSwitchedOn() || OperationModeSwitch.wasSwitchedOff()) {
+    reset();
   }
 
   // Control Sync button
   ControlSyncButton.update();
   if (ControlSyncButton.wasSwitchedOn()) {
-    for (int i = 0; i < ARRAY_SIZE(CONTROLS); i ++) {
-      CONTROLS[i]->forceUpdate(MIDI_OUT);
-    }
+    controls.forceUpdate(MIDI_OUT);
   }
 
   // Panic button

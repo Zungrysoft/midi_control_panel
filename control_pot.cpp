@@ -54,11 +54,11 @@ void ControlPot::update(midi::MidiInterface<midi::SerialMIDI<HardwareSerial>> mi
   if (value != prevValue) {
     if (potObject.wasValueChanged() || value == outputMin || value == outputMax) {
       // Send Control Change
-      // midiInstance.sendControlChange(ccNumber, value, channel);
-      Serial.print(ccNumber);
-      Serial.print(" - ");
-      Serial.print(value);
-      Serial.print("\n");
+      midiInstance.sendControlChange(ccNumber, value, channel);
+      // Serial.print(ccNumber);
+      // Serial.print(" - ");
+      // Serial.print(value);
+      // Serial.print("\n");
       prevValue = value;
     }
   }
